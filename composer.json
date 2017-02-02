@@ -1,0 +1,22 @@
+{
+    "name": "ttmdear/labi",
+    "description": "A set of tools supporting communication with the database.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Paweł Bobryk",
+            "email": "bobryk.pawel@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "Labi\\": "src/Labi"
+        }
+    },
+    "require": {
+        "pimple/pimple" : "~3.0",
+        "container-interop/container-interop": "^1.1"
+    }
+}
