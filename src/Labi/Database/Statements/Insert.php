@@ -12,6 +12,8 @@ namespace Labi\Database\Statements;
 use Labi\Database\Statements\Statement;
 use Labi\Database\Utility\Condition;
 use Labi\Database\Utility\Uid;
+use Labi\Adapters\AdapterInterface;
+
 use Labi\CreatorInterface;
 
 class Insert extends Statement implements CreatorInterface
@@ -21,10 +23,8 @@ class Insert extends Statement implements CreatorInterface
     private $columns = null;
     private $values = array();
 
-    function __construct($adapter, $container)
+    function __construct(AdapterInterface $adapter)
     {
-        parent::__construct($container);
-
         $this->adapter = $adapter;
     }
 
@@ -74,7 +74,7 @@ class Insert extends Statement implements CreatorInterface
         $params = array_merge($this->params(), $this->params(true), $params);
         $this->adapter->execute($sql, $params);
 
-        return $this->adapter->lastId();
+        return true;
     }
     // - CreatorInterface
 

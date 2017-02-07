@@ -1,18 +1,18 @@
 <?php
 require __DIR__."/../vendor/autoload.php";
 
-use Pimple\Container;
-
-$labi = new \Labi\Labi(__DIR__."/config.php");
-
-$adapter = $labi->adapter('bookstore');
+$adapter = new \Labi\Adapters\Mysql('bookstore', array(
+    'adapter' => 'mysql',
+    'host' => '192.168.10.115',
+    'dbname' => 'bookstore_source',
+    'username' => 'user',
+    'password' => '',
+    'charset' => 'utf8'
+));
 
 $select = $adapter->searcher();
 
-// simple example of select
-$select
-    ->from('authors', 'cs')
-;
+$select->from('books');
 
 // todo : delete
 die(print_r($select->search(), true));

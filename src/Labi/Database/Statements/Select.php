@@ -14,7 +14,10 @@ use Labi\Database\Utility\Field;
 use Labi\Database\Utility\Column;
 use Labi\Database\Utility\Condition;
 use Labi\Database\Utility\ConditionInterface;
+use Labi\Adapters\AdapterInterface;
+
 use Labi\Database\Statements\Statement;
+
 use Labi\SearcherInterface;
 
 class Select extends Statement implements ConditionInterface, SearcherInterface
@@ -31,10 +34,8 @@ class Select extends Statement implements ConditionInterface, SearcherInterface
     private $rules = array();
     private $defaultRule;
 
-    function __construct($adapter, $container)
+    function __construct(AdapterInterface $adapter)
     {
-        parent::__construct($container);
-
         $this->adapter = $adapter;
         $this->condition = new Condition($this, $this);
 
@@ -47,7 +48,7 @@ class Select extends Statement implements ConditionInterface, SearcherInterface
         };
     }
 
-    // magic
+    // + magic
     public function __get($column)
     {
         return $this->column($column, false);
@@ -62,7 +63,7 @@ class Select extends Statement implements ConditionInterface, SearcherInterface
     {
         return $this->column($column, true);
     }
-    // end of magic
+    // - magic
 
     public function from($table, $alias = null)
     {
@@ -166,7 +167,7 @@ class Select extends Statement implements ConditionInterface, SearcherInterface
         return $this;
     }
 
-    // Join
+    // + Join
     public function innerJoin($table, $alias = null)
     {
         $join = new Join($this, $table, $alias);
@@ -202,9 +203,9 @@ class Select extends Statement implements ConditionInterface, SearcherInterface
 
         return $join;
     }
-    // end of Join
+    // - Join
 
-    // Rules
+    // + Rules
     public function defaultRule($defaultRule)
     {
         $this->defaultRule = $defaultRule;
@@ -246,8 +247,7 @@ class Select extends Statement implements ConditionInterface, SearcherInterface
 
         return $this;
     }
-
-    // end of Rules
+    // - Rules
 
     // + ConditionInterface
     public function brackets($function, $scope = null)
@@ -377,6 +377,7 @@ class Select extends Statement implements ConditionInterface, SearcherInterface
     }
     // - ConditionInterface
 
+    // + Statement
     public function toSql($params = array())
     {
         if (is_null($this->table)) {
@@ -477,6 +478,7 @@ class Select extends Statement implements ConditionInterface, SearcherInterface
 
         return $sql;
     }
+    // - Statement
 
     public function limit($limit = null , $offset = 0)
     {
@@ -512,32 +514,32 @@ class Select extends Statement implements ConditionInterface, SearcherInterface
         return $this;
     }
 
-    // + SearcherInterface
-    public function search($params = array())
-    {
-        return $this->all($params);
-    }
-    // - SearcherInterface
-
-    public function one($params = array())
+    public function first($params = array())
     {
         $this->limit(1);
-
         $rows = $this->all($params);
-
         if (empty($rows)) {
             return null;
         }
-
         return $rows[0];
     }
 
     public function all($params = array())
     {
+        return $this->search($params);
+    }
+
+    // + SearcherInterface
+    public function search($params = array())
+    {
+        // tworze sql
         $sql = $this->toSql();
 
+        // lacze parametry
         $params = array_merge($this->params(), $this->params(true), $params);
 
+        // zwracam wyniki
         return $this->adapter->fetch($sql, $params);
     }
+    // - SearcherInterface
 }

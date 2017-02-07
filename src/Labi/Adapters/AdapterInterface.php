@@ -9,19 +9,8 @@
  */
 namespace Labi\Adapters;
 
-use Labi\Container;
-
 interface AdapterInterface
 {
-    /**
-     *
-     * @param string $source Na of adapter
-     * @param array $config The configuration for the adapter. It is different
-     * for different types of adapters.
-     * $param \Labi\Container $container Dependence Injection cantainer.
-     */
-    public function __construct($source, $config, Container $container);
-
     /**
      * Performs any type of command on adapter.
      *
@@ -41,13 +30,6 @@ interface AdapterInterface
      * @return array
      */
     public function fetch($command, $params = array());
-
-    /**
-     * Returns id of recently added element.
-     *
-     * @return mixed
-     */
-    public function lastId();
 
     /**
      * Returns object of searcher.

@@ -12,6 +12,7 @@ namespace Labi\Database\Statements;
 use Labi\Database\Utility\Condition;
 use Labi\Database\Utility\ConditionInterface;
 use Labi\UpdaterInterface;
+use Labi\Adapters\AdapterInterface;
 
 class Update extends Statement implements ConditionInterface, UpdaterInterface
 {
@@ -20,12 +21,9 @@ class Update extends Statement implements ConditionInterface, UpdaterInterface
     private $values = array();
     private $condition = null;
 
-    function __construct($adapter, $container)
+    function __construct(AdapterInterface $adapter)
     {
-        parent::__construct($container);
-
         $this->adapter = $adapter;
-
         $this->condition = new Condition($this, $this);
     }
 

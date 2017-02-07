@@ -9,7 +9,10 @@
  */
 namespace Labi;
 
+use Labi\Adapters\AdapterInterface;
+
 interface SearcherInterface
 {
+    function __construct(AdapterInterface $adapter);
     public function search($params = array());
 }

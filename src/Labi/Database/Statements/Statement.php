@@ -9,22 +9,12 @@
  */
 namespace Labi\Database\Statements;
 
-use Labi\Database\Statements\Select;
-use Labi\Container;
-
 abstract class Statement
 {
     abstract public function toSql($params = array());
 
     private $params = array();
     private $pparams = array();
-    private $container;
-
-
-    function __construct(Container $container)
-    {
-        $this->container = $container;
-    }
 
     public function params($proccess = false)
     {

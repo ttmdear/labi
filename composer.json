@@ -13,10 +13,12 @@
     "autoload": {
         "psr-4": {
             "Labi\\": "src/Labi"
-        }
+        },
+        "files": [
+            "src/Labi/functions.php"
+        ]
     },
     "require": {
-        "pimple/pimple" : "~3.0",
-        "container-interop/container-interop": "^1.1"
+        "webmozart/assert": "^1.2"
     }
 }

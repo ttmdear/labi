@@ -9,7 +9,10 @@
  */
 namespace Labi;
 
+use Labi\Adapters\AdapterInterface;
+
 interface RemoverInterface
 {
+    function __construct(AdapterInterface $adapter);
     public function remove($params = array());
 }

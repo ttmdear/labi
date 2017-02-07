@@ -9,10 +9,11 @@
  */
 namespace Labi\Database\Statements;
 
-use Labi\Database\Statements\Statement;
 use Labi\Database\Utility\Condition;
 use Labi\Database\Utility\ConditionInterface;
+use Labi\Database\Statements\Statement;
 use Labi\RemoverInterface;
+use Labi\Adapters\AdapterInterface;
 
 class Delete extends Statement implements ConditionInterface, RemoverInterface
 {
@@ -20,10 +21,8 @@ class Delete extends Statement implements ConditionInterface, RemoverInterface
     private $table = null;
     private $condition = null;
 
-    function __construct($adapter, $container)
+    function __construct(AdapterInterface $adapter)
     {
-        parent::__construct($container);
-
         $this->adapter = $adapter;
 
         $this->condition = new Condition($this, $this);
@@ -64,7 +63,7 @@ class Delete extends Statement implements ConditionInterface, RemoverInterface
     {
         $sql = $this->toSql();
         $this->adapter->execute($sql, $this->params(true));
-        return $this->adapter->lastId();
+        return true;
     }
     // - RemoverInterface
 
@@ -194,7 +193,5 @@ class Delete extends Statement implements ConditionInterface, RemoverInterface
         $this->condition->between($column, $begin, $end);
         return $this;
     }
-
     // - ConditionInterface
-
 }

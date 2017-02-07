@@ -9,22 +9,51 @@
  */
 namespace Labi\Adapters;
 
+// use Database Utility
 use Labi\Database\Statements\Select;
 use Labi\Database\Statements\Insert;
 use Labi\Database\Statements\Update;
 use Labi\Database\Statements\Delete;
-use Labi\Container;
+
+use Labi\Assert;
+use Labi\Adapters\AdapterAbstract;
+
+use Labi\RemoverInterface;
+use Labi\UpdaterInterface;
+use Labi\CreatorInterface;
+use Labi\SearcherInterface;
 
 class Mysql extends AdapterAbstract
 {
     private $pdo;
-    private $container;
+    private $config = array(
+        'updaterClass' => Update::class,
+        'removerClass' => Delete::class,
+        'creatorClass' => Insert::class,
+        'searcherClass' => Select::class,
+    );
 
-    function __construct($source, $config, Container $container)
+    function __construct($name, $config = array())
     {
-        parent::__construct($source, $config, $container);
+        Assert::alpha($name);
+        Assert::isArray($config, "Config should be array.");
 
-        $this->container = $container;
+        // lacze konfiguracje z konfiguracja standardowa
+        $this->config = array_merge($this->config, $config);
+
+        Assert::keysExist($this->config, array(
+            'adapter',
+            'host',
+            'dbname',
+            'username',
+            'password',
+            'charset',
+        ));
+
+        Assert::implementsInterface($this->config['updaterClass'], UpdaterInterface::class);
+        Assert::implementsInterface($this->config['removerClass'], RemoverInterface::class);
+        Assert::implementsInterface($this->config['searcherClass'], SearcherInterface::class);
+        Assert::implementsInterface($this->config['creatorClass'], CreatorInterface::class);
     }
 
     private function init()
@@ -33,15 +62,13 @@ class Mysql extends AdapterAbstract
             return;
         }
 
-        $config = $this->config();
-
         // init pdo
-        $adapter = $config['adapter'];
-        $host = $config['host'];
-        $dbname = $config['dbname'];
-        $username = $config['username'];
-        $password = $config['password'];
-        $charset = $config['charset'];
+        $adapter = $this->config['adapter'];
+        $host = $this->config['host'];
+        $dbname = $this->config['dbname'];
+        $username = $this->config['username'];
+        $password = $this->config['password'];
+        $charset = $this->config['charset'];
 
         // connection
         if (!empty($password)) {
@@ -57,7 +84,7 @@ class Mysql extends AdapterAbstract
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
     }
 
-    // + AdapterAbstract
+    // + AdapterInterface
     public function execute($sql, $params = array())
     {
         $statement = $this->prepare($sql, $params);
@@ -72,33 +99,30 @@ class Mysql extends AdapterAbstract
         return $result;
     }
 
-    public function lastId()
-    {
-        $this->init();
-
-        return $this->pdo->lastInsertId();
-    }
-
     public function searcher()
     {
-        return new Select($this, $this->container);
+        $class = $this->config['searcherClass'];
+        return new $class($this);
     }
 
     public function creator()
     {
-        return new Insert($this, $this->container);
+        $class = $this->config['creatorClass'];
+        return new $class($this);
     }
 
     public function remover()
     {
-        return new Delete($this, $this->container);
+        $class = $this->config['removerClass'];
+        return new $class($this);
     }
 
     public function updater()
     {
-        return new Update($this, $this->container);
+        $class = $this->config['updaterClass'];
+        return new $class($this);
     }
-    // - AdapterAbstract
+    // - AdapterInterface
 
     private function prepare($sql, $params = array())
     {
@@ -114,5 +138,4 @@ class Mysql extends AdapterAbstract
 
         return $statement;
     }
-
 }

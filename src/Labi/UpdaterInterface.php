@@ -9,7 +9,10 @@
  */
 namespace Labi;
 
+use Labi\Adapters\AdapterInterface;
+
 interface UpdaterInterface
 {
+    function __construct(AdapterInterface $adapter);
     public function update($params = array());
 }

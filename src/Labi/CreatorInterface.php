@@ -9,7 +9,10 @@
  */
 namespace Labi;
 
+use Labi\Adapters\AdapterInterface;
+
 interface CreatorInterface
 {
+    function __construct(AdapterInterface $adapter);
     public function create($params = array());
 }
