@@ -11,20 +11,26 @@ namespace Labi\Database\Utility;
 
 class Column
 {
-    const UNDEFINED = '#21089487035279118854#@';
+    const UNDEFINED = '#21089487035279118854#@-';
 
     private $value;
     private $alias;
 
     private $context;
-    private $select;
     private $condition;
     private $hide = true;
 
-    function __construct($value)
+    public function __construct($value)
     {
         $this->value = $value;
     }
+
+    // + magic
+    public function __toString()
+    {
+        return (string)$this->value();
+    }
+    // - magic
 
     public static function convColumnId($id, $table)
     {
@@ -85,6 +91,11 @@ class Column
         return $this;
     }
 
+    public function string($value)
+    {
+        return $this->value("\"$value\"");
+    }
+
     public function value($value = self::UNDEFINED)
     {
         if ($value === self::UNDEFINED) {
@@ -94,11 +105,6 @@ class Column
         $this->value = $value;
 
         return $this;
-    }
-
-    public function string($value)
-    {
-        return $this->value("\"$value\"");
     }
 
     public function context($context = null)
@@ -111,20 +117,15 @@ class Column
         return $this;
     }
 
-    public function select($select = null)
-    {
-        if (is_null($select)) {
-            return $this->select;
-        }
-
-        $this->select = $select;
-        return $this;
-    }
-
+    /**
+     * Ustawia obiekt warunku z kótrym współpracuje kolumna.
+     *
+     * @param \Labi\Database\Utility\Condition
+     * @return self
+     */
     public function condition($condition)
     {
         $this->condition = $condition;
-
         return $this;
     }
 
@@ -133,7 +134,7 @@ class Column
         return $this->context->column($cname, $show);
     }
 
-    // condition
+    // + ConditionInterface
     public function brackets($function)
     {
         throw new \Exception("Column condition do not support brackets.");
@@ -148,26 +149,9 @@ class Column
     public function orOperator()
     {
         $this->condition->orOperator();
-
         return $this;
     }
 
-    public function __debugInfo()
-    {
-        return array(
-            'value' => $this->value,
-            'context' => get_class($this->context),
-            'select' => get_class($this->select),
-            'condition' => get_class($this->condition),
-        );
-    }
-
-    public function __toString()
-    {
-        return (string)$this->value();
-    }
-
-    // ConditionInterface
     public function in($value)
     {
         $this->condition->in($this, $value);
@@ -257,6 +241,5 @@ class Column
         $this->condition->between($this, $begin, $end);
         return $this;
     }
-
     // end of ConditionInterface
 }

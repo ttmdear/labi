@@ -7,16 +7,11 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-namespace Labi\Database\Utility;
+namespace Labi\Operators;
 
-class Uid
+use Labi\Adapters\AdapterInterface;
+
+interface RemoverInterface
 {
-    private static $uId = 1;
-
-    public static function uId()
-    {
-        self::$uId++;
-
-        return "uId".self::$uId;
-    }
+    public function remove($params = array());
 }

@@ -34,28 +34,28 @@ interface AdapterInterface
     /**
      * Returns object of searcher.
      *
-     * @return \Labi\SearcherInterface
+     * @return \Labi\Operators\SearcherInterface
      */
-    public function searcher();
+    public function searcher($class = null);
 
     /**
      * Returns object of creator.
      *
-     * @return \Labi\CreatorInterface
+     * @return \Labi\Operators\CreatorInterface
      */
-    public function creator();
+    public function creator($class = null);
 
     /**
      * Returns object of remover.
      *
-     * @return \Labi\RemoverInterface
+     * @return \Labi\Operators\RemoverInterface
      */
-    public function remover();
+    public function remover($class = null);
 
     /**
      * Returns object of updater.
      *
-     * @return \Labi\UpdaterInterface
+     * @return \Labi\Operators\UpdaterInterface
      */
-    public function updater();
+    public function updater($class = null);
 }

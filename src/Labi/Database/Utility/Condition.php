@@ -9,32 +9,74 @@
  */
 namespace Labi\Database\Utility;
 
-use Labi\Database\Utility\Brackets;
-use Labi\Database\Statements\Select;
+use Labi\Database\Searcher;
 use Labi\Database\Utility\Column;
 use Labi\Database\Utility\ConditionInterface;
 use Labi\Database\Utility\Uid;
-use Labi\Database\Statements\Statement;
 
 class Condition implements ConditionInterface
 {
-    private $bracketsstack = array();
+    private $mstack = array();
     private $brackets;
     private $mbrackets;
 
     private $context;
-    private $statement;
 
-    function __construct($context, $statement)
+    function __construct($context)
     {
         $this->context = $context;
-        $this->statement = $statement;
 
-        // pierwszy nawias
-        $brackets = new Brackets();
+        // pierwsze nawiasy
+        $brackets = array();
 
-        $this->mbrackets = $brackets;
-        $this->brackets = $brackets;
+        // przekazanie referencji do brackets aktualnych i do roota
+        $this->mbrackets = new \stdClass();
+        $this->mbrackets->type = 'brackets';
+        $this->mbrackets->operator = 'and';
+        $this->mbrackets->elements = array();
+
+        $this->brackets = $this->mbrackets;
+    }
+
+    // + magic
+    public function __clone()
+    {
+        $cloned = $this->cloneBrackets($this->mbrackets);
+
+        $this->mbrackets = &$cloned;
+        $this->brackets = &$this->mbrackets;
+    }
+    // - magic
+
+    private function cloneBrackets($brackets)
+    {
+        // tworze klon nawiasow
+        $cloned = new \stdClass();
+        $cloned->type = $brackets->type;
+        $cloned->operator = $brackets->operator;
+        $cloned->elements = array();
+
+        foreach ($brackets->elements as $element) {
+            if ($element->type === 'brackets') {
+                // kolunuje nawiasy
+                array_push($cloned->elements, $this->cloneBrackets($element));
+            }else{
+                // wrzucam elementy do listy
+                array_push($cloned->elements, $element);
+            }
+        }
+
+        return $cloned;
+    }
+
+    public function context($context = null)
+    {
+        if (is_null($context)) {
+            return $this->context;
+        }
+
+        $this->context = $context;
+        return $this;
     }
 
     public function brackets($function, $scope = null)
@@ -45,6 +87,7 @@ class Condition implements ConditionInterface
 
         $this->openBrackets();
         call_user_func_array($function, array($scope));
+
         $this->closeBrackets();
 
         return $this->context;
@@ -52,33 +95,48 @@ class Condition implements ConditionInterface
 
     private function openBrackets()
     {
-        // save previous brackets
-        $this->bracketsstack[] = $this->brackets;
+        // wrzucam na stos aktualnie przetwarzany nawias
+        // $this->mstack[] = &$this->brackets;
+        $this->mstack[] = $this->brackets;
 
-        // create new brackets
-        $brackets = new Brackets();
-        $this->brackets->add($brackets);
+        $brackets = new \stdClass();
+        $brackets->type = 'brackets';
+        $brackets->operator = 'and';
+        $brackets->elements = array();
+
+        if (count($this->brackets->elements) > 0) {
+            $element = new \stdClass();
+            $element->type = 'operator';
+            $element->value = $this->brackets->operator;
+
+            array_push($this->brackets->elements, $element);
+        }
+
+        array_push($this->brackets->elements, $brackets);
 
         $this->brackets = $brackets;
     }
 
     private function closeBrackets()
     {
-        $last = array_pop($this->bracketsstack);
-        $this->brackets = $last;
+        $brackets = array_pop($this->mstack);
+
+        $this->brackets = $brackets;
     }
 
     // (wA AND wB)
     public function andOperator()
     {
-        $this->brackets->andOperator();
+        // aktualnie przetwarzany nawias ma AND operator
+        $this->brackets->operator = 'and';
 
         return $this->context;
     }
 
     public function orOperator()
     {
-        $this->brackets->orOperator();
+        // aktualnie przetwarzany nawias ma OR operator
+        $this->brackets->operator = 'or';
 
         return $this->context;
     }
@@ -86,52 +144,56 @@ class Condition implements ConditionInterface
     // methods
     public function in($column, $value)
     {
-        if (!is_array($value)) {
+        if (is_numeric($value) || is_string($value)) {
             $value = array($value);
         }
 
-        $this->brackets->add(array(
-            'type' => 'in',
-            'column' => $column,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'in';
+        $element->column = $column;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function notIn($column, $value)
     {
-        if (!is_array($value)) {
+        if (is_numeric($value) || is_string($value)) {
             $value = array($value);
         }
 
-        $this->brackets->add(array(
-            'type' => 'notIn',
-            'column' => $column,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'notIn';
+        $element->column = $column;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function isNull($column)
     {
-        $this->brackets->add(array(
-            'type' => 'isNull',
-            'column' => $column,
-            'value' => null
-        ));
+        $element = new \stdClass();
+        $element->type = 'isNull';
+        $element->column = $column;
+        $element->value = null;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function isNotNull($column)
     {
-        $this->brackets->add(array(
-            'type' => 'isNotNull',
-            'column' => $column,
-            'value' => null
-        ));
+        $element = new \stdClass();
+        $element->type = 'isNotNull';
+        $element->column = $column;
+        $element->value = null;
+
+        $this->addElement($element);
 
         return $this->context;
     }
@@ -153,123 +215,136 @@ class Condition implements ConditionInterface
 
     public function like($column, $value)
     {
-        $this->brackets->add(array(
-            'type' => 'like',
-            'column' => $column,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'like';
+        $element->column = $column;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function eq($column, $value)
     {
-        $this->brackets->add(array(
-            'type' => 'eq',
-            'column' => $column,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'eq';
+        $element->column = $column;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function neq($column, $value)
     {
-        $this->brackets->add(array(
-            'type' => 'neq',
-            'column' => $column,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'neq';
+        $element->column = $column;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function lt($column, $value)
     {
-        $this->brackets->add(array(
-            'type' => 'lt',
-            'column' => $column,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'lt';
+        $element->column = $column;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function lte($column, $value)
     {
-        $this->brackets->add(array(
-            'type' => 'lte',
-            'column' => $column,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'lte';
+        $element->column = $column;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function gt($column, $value)
     {
-        $this->brackets->add(array(
-            'type' => 'gt',
-            'column' => $column,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'gt';
+        $element->column = $column;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function gte($column, $value)
     {
-        $this->brackets->add(array(
-            'type' => 'gte',
-            'column' => $column,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'gte';
+        $element->column = $column;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function expr($expr)
     {
-        $this->brackets->add(array(
-            'type' => 'expr',
-            'column' => null,
-            'value' => $expr
-        ));
+        $element = new \stdClass();
+        $element->type = 'expr';
+        $element->column = null;
+        $element->value = $expr;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function exists($value)
     {
-        $this->brackets->add(array(
-            'type' => 'exists',
-            'column' => null,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'exists';
+        $element->column = null;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function notExists($value)
     {
-        $this->brackets->add(array(
-            'type' => 'notExists',
-            'column' => null,
-            'value' => $value,
-        ));
+        $element = new \stdClass();
+        $element->type = 'notExists';
+        $element->column = null;
+        $element->value = $value;
+
+        $this->addElement($element);
 
         return $this->context;
     }
 
     public function between($column, $begin, $end)
     {
-        $this->brackets->add(array(
-            'type' => 'between',
-            'column' => $column,
-            'value' => null,
-            'begin' => $begin,
-            'end' => $end,
-        ));
+        $this->gte($column, $begin);
+        $this->lte($column, $end);
+
+        // $this->addElement(array(
+        //     'type' => 'between',
+        //     'column' => $column,
+        //     'value' => null,
+        //     'begin' => $begin,
+        //     'end' => $end,
+        // ));
 
         return $this->context;
     }
@@ -278,7 +353,13 @@ class Condition implements ConditionInterface
     {
         $sql = "";
 
-        $this->travers($this->mbrackets->elements(), $sql);
+        if(defined('debug')){
+            // todo : delete
+            die(print_r($this->mbrackets, true));
+            // endtodo
+        }
+        $this->travers($this->mbrackets, $sql);
+
 
         if (empty($sql)) {
             return null;
@@ -287,20 +368,34 @@ class Condition implements ConditionInterface
         return $sql;
     }
 
-    private function travers($elements, &$conditions)
+    private function addElement($element)
     {
-        foreach ($elements as $element) {
-            if ($element instanceof Brackets) {
+        if (count($this->brackets->elements) > 0) {
+            $operator = new \stdClass();
+            $operator->type = 'operator';
+            $operator->value = $this->brackets->operator;
+
+            array_push($this->brackets->elements, $operator);
+        }
+
+        array_push($this->brackets->elements, $element);
+    }
+
+    private function travers($brakets, &$conditions)
+    {
+        foreach ($brakets->elements as $key => $element) {
+
+            if ($element->type === 'brackets') {
                 $conditions .= '(';
-                $this->travers($element->elements(), $conditions);
+                $this->travers($element, $conditions);
                 $conditions = rtrim($conditions);
                 $conditions .= ') ';
-            }elseif(is_string($element)){
-                $conditions .= "{$element} ";
-            }elseif(is_array($element)){
-                $type = $element['type'];
-                $column = $element['column'];
-                $value = $element['value'];
+            }elseif($element->type === 'operator'){
+                $conditions .= "{$element->value} ";
+            }else{
+                $type = $element->type;
+                $column = $element->column;
+                $value = $element->value;
 
                 $condition = null;
 
@@ -322,7 +417,7 @@ class Condition implements ConditionInterface
                     }else{
                         $uId = Uid::uId();
                         $condition = "{$column} {$operator} :$uId";
-                        $this->statement->param($uId, $value, true);
+                        $this->context->param($uId, $value, true);
                     }
                 }
 
@@ -338,8 +433,14 @@ class Condition implements ConditionInterface
 
                     if (empty($value)) {
                         $condition = "1=2";
-                    }elseif ($value instanceof Select){
+                    }elseif ($value instanceof Searcher){
                         $condition = "{$column} {$operator}({$value->toSql()})";
+
+                        // przenosze parametry
+                        foreach ($value->params(true) as $name => $val) {
+                            $this->context->param($name, $val, true);
+                        }
+
                     }elseif(is_array($value)){
                         $condition = "{$column} {$operator}(";
 
@@ -358,8 +459,14 @@ class Condition implements ConditionInterface
                                 $direct = true;
                             }
 
-                            if ($inValue instanceof Select) {
+                            if ($inValue instanceof Searcher) {
                                 $inValue = "({$inValue->toSql()})";
+
+                                // przenosze parametry
+                                foreach ($inValue->params(true) as $name => $val) {
+                                    $this->context->param($name, $val, true);
+                                }
+
                                 $direct = true;
                             }
 
@@ -368,7 +475,7 @@ class Condition implements ConditionInterface
                             }else{
                                 $uId = Uid::uId();
                                 $condition .= ":{$uId}";
-                                $this->statement->param($uId, $value[$i], true);
+                                $this->context->param($uId, $value[$i], true);
                             }
 
                             if ($i !== $count-1) {
@@ -399,22 +506,28 @@ class Condition implements ConditionInterface
                         $operator = 'not exists';
                     }
 
-                    if ($value instanceof Select) {
+                    if ($value instanceof Searcher) {
                         $condition = "{$operator}({$value->toSql()})";
+
+                        // przenosze parametry
+                        foreach ($value->params(true) as $name => $val) {
+                            $this->context->param($name, $val, true);
+                        }
+
                     }else{
                         $condition = "{$operator}({$value})";
                     }
 
                     break;
                 case 'between':
-                    $begin = $element['begin'];
-                    $end = $element['end'];
+                    $begin = $element->begin;
+                    $end = $element->end;
 
-                    if ($begin instanceof Select) {
+                    if ($begin instanceof Searcher) {
                         $begin = $begin->toSql();
                     }
 
-                    if ($end instanceof Select) {
+                    if ($end instanceof Searcher) {
                         $end = $end->toSql();
                     }
 
@@ -427,10 +540,7 @@ class Condition implements ConditionInterface
                 }
 
                 $conditions .= "{$condition} ";
-            }else{
-                throw new \Exception("Wrong type of element.");
             }
         }
     }
-
 }

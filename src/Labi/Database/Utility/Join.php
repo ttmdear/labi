@@ -11,23 +11,43 @@ namespace Labi\Database\Utility;
 
 use Labi\Database\Utility\Condition;
 use Labi\Database\Utility\ConditionInterface;
-use Labi\Database\Statements\Statement;
 
-class Join extends Statement implements ConditionInterface
+class Join implements ConditionInterface
 {
-    private $statement;
+    /**
+     * Kontekst w ktorym dziala join. Może to byc np. Select, Delete, Update
+     */
+    private $context;
+
+    /**
+     * Join nadrzedny.
+     */
     private $join;
 
+    /**
+     * ,Tabela dolaczana.
+     */
     private $table;
+
+    /**
+     * Alias dla tabeli
+     */
     private $alias;
 
+    /**
+     * Obiekt obslugujacy warunek zlaczenia.
+     */
     private $condition;
+
+    /**
+     * Typ zlaczenia.
+     */
     private $type;
 
-    function __construct($statement, $table, $alias = null, $join = null)
+    function __construct($context, $table, $alias = null, $join = null)
     {
-        $this->statement = $statement;
-        $this->condition = new Condition($this, $this);
+        $this->context = $context;
+        $this->condition = new Condition($this);
 
         $this->join = $join;
 
@@ -39,16 +59,26 @@ class Join extends Statement implements ConditionInterface
         $this->alias = $alias;
     }
 
+    // + magic
+    public function __clone()
+    {
+        $this->join = null;
+
+        $this->condition = clone($this->condition);
+        $this->condition->context($this);
+    }
+    // - magic
+
     public function param($name, $value)
     {
-        $this->statement->param($name, $value);
+        $this->context->param($name, $value);
 
         return $this;
     }
 
     public function params()
     {
-        return $this->statement->params();
+        return $this->context->params();
     }
 
     public function alias()
@@ -61,17 +91,23 @@ class Join extends Statement implements ConditionInterface
         return $this->table;
     }
 
-    public function context()
+    public function context($context = null)
     {
-        return $this->statement;
+        if (is_null($context)) {
+            return $this->context;
+        }
+
+        $this->context = $context;
+
+        return $this;
     }
 
     public function column($cname, $show = true)
     {
         $cname = Column::convColumnId($cname, $this->alias);
-        $column = $this->statement->column($cname->id, $show);
+        $column = $this->context->column($cname->id, $show);
 
-        // set context of column to join, because statement
+        // set context of column to join, because context
         $column->context($this);
         $column->condition($this->condition);
 
@@ -100,7 +136,7 @@ class Join extends Statement implements ConditionInterface
     // joins
     public function innerJoin($table, $alias = null)
     {
-        $join = new Join($this->statement, $table, $alias, $this);
+        $join = new Join($this->context, $table, $alias, $this);
         $join->typeInner();
         $this->joins[] = $join;
 
@@ -109,7 +145,7 @@ class Join extends Statement implements ConditionInterface
 
     public function outerJoin($table, $alias = null)
     {
-        $join = new Join($this->statement, $table, $alias, $this);
+        $join = new Join($this->context, $table, $alias, $this);
         $join->typeOuter();
         $this->joins[] = $join;
 
@@ -118,7 +154,7 @@ class Join extends Statement implements ConditionInterface
 
     public function leftJoin($table, $alias = null)
     {
-        $join = new Join($this->statement, $table, $alias, $this);
+        $join = new Join($this->context, $table, $alias, $this);
         $join->typeLeft();
         $this->joins[] = $join;
 
@@ -127,7 +163,7 @@ class Join extends Statement implements ConditionInterface
 
     public function join($table, $alias = null)
     {
-        $join = new Join($this->statement, $table, $alias, $this);
+        $join = new Join($this->context, $table, $alias, $this);
         $join->typeInner();
         $this->joins[] = $join;
 
@@ -151,7 +187,7 @@ class Join extends Statement implements ConditionInterface
             $using = array($using);
         }
 
-        $join = $this->statement;
+        $join = $this->context;
 
         if (!is_null($this->join)) {
             if (!is_null($this->join)) {
@@ -166,7 +202,7 @@ class Join extends Statement implements ConditionInterface
         return $this;
     }
 
-    // ConditionInterface
+    // + ConditionInterface
     public function brackets($function, $scope = null)
     {
         $this->condition->brackets($function, $this);
@@ -293,5 +329,5 @@ class Join extends Statement implements ConditionInterface
         return $this;
     }
 
-    // end of ConditionInterface
+    // - ConditionInterface
 }
