@@ -353,13 +353,7 @@ class Condition implements ConditionInterface
     {
         $sql = "";
 
-        if(defined('debug')){
-            // todo : delete
-            die(print_r($this->mbrackets, true));
-            // endtodo
-        }
         $this->travers($this->mbrackets, $sql);
-
 
         if (empty($sql)) {
             return null;
