@@ -33,8 +33,6 @@ class Adapter implements \Labi\Adapters\AdapterInterface
             return;
         }
 
-        // init pdo
-        $adapter = $this->config['adapter'];
         $host = $this->config['host'];
         $dbname = $this->config['dbname'];
         $username = $this->config['username'];
