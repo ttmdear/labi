@@ -9,45 +9,23 @@
  */
 namespace Labi\Database\Utility;
 
-use Labi\Database\Utility\Condition;
 use Labi\Database\Utility\ConditionInterface;
 
 class Join implements ConditionInterface
 {
-    /**
-     * Kontekst w ktorym dziala join. Może to byc np. Select, Delete, Update
-     */
-    private $context;
-
-    /**
-     * Join nadrzedny.
-     */
-    private $join;
-
-    /**
-     * ,Tabela dolaczana.
-     */
     private $table;
-
-    /**
-     * Alias dla tabeli
-     */
     private $alias;
-
-    /**
-     * Obiekt obslugujacy warunek zlaczenia.
-     */
+    private $context;
+    private $join;
     private $condition;
-
-    /**
-     * Typ zlaczenia.
-     */
     private $type;
 
-    function __construct($context, $table, $alias = null, $join = null)
+    private $quoteChar;
+
+    function __construct($context, $table, $alias = null, \Labi\Database\Utility\Join $join = null, $quoteChar = null)
     {
         $this->context = $context;
-        $this->condition = new Condition($this);
+        $this->condition = new \Labi\Database\Utility\Condition($this);
 
         $this->join = $join;
 
@@ -57,6 +35,7 @@ class Join implements ConditionInterface
 
         $this->table = $table;
         $this->alias = $alias;
+        $this->quoteChar = is_null($quoteChar) ? "" : $quoteChar;
     }
 
     // + magic
@@ -173,11 +152,12 @@ class Join implements ConditionInterface
     public function toSql($params = array())
     {
         $on = $this->condition->toSql($params);
+        $quoteChar = $this->quoteChar;
 
         if (is_null($on)) {
-            return "{$this->type} join `{$this->table}` as `{$this->alias}`";
+            return "{$this->type} join {$quoteChar}{$this->table}{$quoteChar} as {$quoteChar}{$this->alias}{$quoteChar}";
         }else{
-            return "{$this->type} join `{$this->table}` as `{$this->alias}` \n    on {$on}";
+            return "{$this->type} join {$quoteChar}{$this->table}{$quoteChar} as {$quoteChar}{$this->alias}{$quoteChar} \n    on {$on}";
         }
     }
 

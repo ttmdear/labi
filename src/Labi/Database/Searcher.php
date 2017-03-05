@@ -9,17 +9,12 @@
  */
 namespace Labi\Database;
 
-use Labi\Database\Utility\Join;
-use Labi\Database\Utility\Field;
-use Labi\Database\Utility\Column;
-use Labi\Database\Utility\Condition;
-use Labi\Database\Utility\ConditionInterface;
-use Labi\Adapters\AdapterInterface;
-
-use Labi\Operators\SearcherInterface;
-
-class Searcher implements ConditionInterface, SearcherInterface
+abstract class Searcher implements
+    \Labi\Database\Utility\ConditionInterface,
+    \Labi\Operators\SearcherInterface
 {
+    abstract protected function quoteChar();
+
     private $adapter = null;
     private $columns = array();
     private $table = null;
@@ -35,15 +30,15 @@ class Searcher implements ConditionInterface, SearcherInterface
     private $params = array();
     private $pparams = array();
 
-    function __construct(AdapterInterface $adapter)
+    public function __construct(\Labi\Adapters\AdapterInterface $adapter)
     {
         $this->adapter = $adapter;
-        $this->condition = new Condition($this);
+        $this->condition = new \Labi\Database\Utility\Condition($this);
 
-        $this->defaultRule = function($name, $value, $context){
+        $this->defaultRule = function($name, $value, $searcher){
             // standardowa metoda ustawia ze podana wartosc jest rowna tej
             // przekazanej w parametrze
-            $context->column($name, false)->equal($value);
+            $searcher->column($name, false)->equal($value);
 
             return true;
         };
@@ -154,7 +149,7 @@ class Searcher implements ConditionInterface, SearcherInterface
         }
 
         // rozbicie zapisuj kolumny na alias i tabele
-        $cname = Column::convColumnId($cname, $this->alias);
+        $cname = \Labi\Database\Utility\Column::convColumnId($cname, $this->alias);
 
         if (isset($this->columns[$cname->id])) {
 
@@ -174,7 +169,7 @@ class Searcher implements ConditionInterface, SearcherInterface
         }
 
         // tworze nowa kolumne, gdzie wartoscia jest pole
-        $column = new Column(new Field($cname->table, $cname->name));
+        $column = new \Labi\Database\Utility\Column(new \Labi\Database\Utility\Field($cname->table, $cname->name, $this->quoteChar()));
         $column
             // ustawiam context na selecta
             ->context($this)
@@ -225,10 +220,10 @@ class Searcher implements ConditionInterface, SearcherInterface
         return $this;
     }
 
-    // + Join
+    // + \Labi\Database\Utility\Join
     public function innerJoin($table, $alias = null)
     {
-        $join = new Join($this, $table, $alias);
+        $join = new \Labi\Database\Utility\Join($this, $table, $alias, null, $this->quoteChar());
         $join->typeInner();
         $this->joins[] = $join;
 
@@ -237,7 +232,7 @@ class Searcher implements ConditionInterface, SearcherInterface
 
     public function outerJoin($table, $alias = null)
     {
-        $join = new Join($this, $table, $alias);
+        $join = new \Labi\Database\Utility\Join($this, $table, $alias, null, $this->quoteChar());
         $join->typeOuter();
         $this->joins[] = $join;
 
@@ -246,7 +241,7 @@ class Searcher implements ConditionInterface, SearcherInterface
 
     public function leftJoin($table, $alias = null)
     {
-        $join = new Join($this, $table, $alias);
+        $join = new \Labi\Database\Utility\Join($this, $table, $alias, null, $this->quoteChar());
         $join->typeLeft();
         $this->joins[] = $join;
 
@@ -255,13 +250,13 @@ class Searcher implements ConditionInterface, SearcherInterface
 
     public function join($table, $alias = null)
     {
-        $join = new Join($this, $table, $alias);
+        $join = new \Labi\Database\Utility\Join($this, $table, $alias, null, $this->quoteChar());
         $join->typeInner();
         $this->joins[] = $join;
 
         return $join;
     }
-    // - Join
+    // - \Labi\Database\Utility\Join
 
     // + Rules
     public function defaultRule($defaultRule)
@@ -307,134 +302,154 @@ class Searcher implements ConditionInterface, SearcherInterface
     }
     // - Rules
 
-    // + ConditionInterface
+    // + \Labi\Database\Utility\ConditionInterface
     public function brackets($function, $scope = null)
     {
         $this->condition->brackets($function, $this);
+
         return $this;
     }
 
     public function andOperator()
     {
         $this->condition->andOperator();
+
         return $this;
     }
 
     public function orOperator()
     {
         $this->condition->orOperator();
+
         return $this;
     }
 
     public function in($column, $value)
     {
-        $this->condition->in($column, $value);
+        $this->condition->in($this->column($column, false), $value);
+
         return $this;
     }
 
     public function notIn($column, $value)
     {
-        $this->condition->notIn($column, $value);
+        $this->condition->notIn($this->column($column, false), $value);
+
         return $this;
     }
 
     public function isNull($column)
     {
-        $this->condition->isNull($column);
+        $this->condition->isNull($this->column($column, false));
+
         return $this;
     }
 
     public function isNotNull($column)
     {
-        $this->condition->isNotNull($column);
+        $this->condition->isNotNull($this->column($column, false));
+
         return $this;
     }
 
     public function startWith($column, $value)
     {
-        $this->condition->startWith($column, $value);
+        $this->condition->startWith($this->column($column, false), $value);
+
         return $this;
     }
 
     public function endWith($column, $value)
     {
-        $this->condition->endWith($column, $value);
+        $this->condition->endWith($this->column($column, false), $value);
+
         return $this;
     }
 
     public function contains($column, $value)
     {
-        $this->condition->contains($column, $value);
+        $this->condition->contains($this->column($column, false), $value);
+
         return $this;
     }
 
     public function like($column, $value)
     {
-        $this->condition->like($column, $value);
+        $this->condition->like($this->column($column, false), $value);
+
         return $this;
     }
 
     public function eq($column, $value)
     {
-        $this->condition->eq($column, $value);
+        $this->condition->eq($this->column($column, false), $value);
 
         return $this;
     }
 
     public function neq($column, $value)
     {
-        $this->condition->neq($column, $value);
+        $this->condition->neq($this->column($column, false), $value);
+
         return $this;
     }
 
     public function lt($column, $value)
     {
-        $this->condition->lt($column, $value);
+        $this->condition->lt($this->column($column, false), $value);
+
         return $this;
     }
 
     public function lte($column, $value)
     {
-        $this->condition->lte($column, $value);
+        $this->condition->lte($this->column($column, false), $value);
+
         return $this;
     }
 
     public function gt($column, $value)
     {
-        $this->condition->gt($column, $value);
+        $this->condition->gt($this->column($column, false), $value);
+
         return $this;
     }
 
     public function gte($column, $value)
     {
-        $this->condition->gte($column, $value);
+        $this->condition->gte($this->column($column, false), $value);
+
         return $this;
     }
 
     public function expr($expr)
     {
         $this->condition->expr($expr);
+
         return $this;
     }
 
     public function exists($value)
     {
         $this->condition->exists($value);
+
         return $this;
     }
 
     public function notExists($value)
     {
         $this->condition->notExists($value);
+
         return $this;
     }
 
     public function between($column, $begin, $end)
     {
-        $this->condition->between($column, $begin, $end);
+        $this->condition->between($this->column($column, false), $begin, $end);
+
         return $this;
     }
-    // - ConditionInterface
+    // - \Labi\Database\Utility\ConditionInterface
 
     public function toSql($params = array())
     {
@@ -449,6 +464,7 @@ class Searcher implements ConditionInterface, SearcherInterface
         // tworze bazowe zapytanie
         $alias = $this->alias;
         $table = $this->table;
+        $quoteChar = $this->quoteChar();
 
         // build select
         $sql = "select\n";
@@ -484,7 +500,7 @@ class Searcher implements ConditionInterface, SearcherInterface
             $calias = $column->alias();
 
             if (!is_null($calias)) {
-                $calias = " as `{$calias}`";
+                $calias = " as {$quoteChar}{$calias}{$quoteChar}";
             }else{
                 $calias = "";
             }
@@ -508,7 +524,7 @@ class Searcher implements ConditionInterface, SearcherInterface
             $sql .= "    *\n";
         }
 
-        $sql .= "from `{$table}` as `{$alias}`\n";
+        $sql .= "from {$quoteChar}{$table}{$quoteChar} as {$quoteChar}{$alias}{$quoteChar}\n";
 
         // joins
         foreach ($this->joins as $join) {
@@ -599,7 +615,7 @@ class Searcher implements ConditionInterface, SearcherInterface
         return $rows[0];
     }
 
-    // + SearcherInterface
+    // + \Labi\Operators\SearcherInterface
     public function search($params = array())
     {
         // tworze sql
@@ -611,5 +627,5 @@ class Searcher implements ConditionInterface, SearcherInterface
         // zwracam wyniki
         return $this->adapter->fetch($sql, $params);
     }
-    // - SearcherInterface
+    // - \Labi\Operators\SearcherInterface
 }

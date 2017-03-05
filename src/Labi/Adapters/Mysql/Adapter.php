@@ -9,11 +9,10 @@
  */
 namespace Labi\Adapters\Mysql;
 
-// use Database Utility
-use Labi\Database\Searcher;
-use Labi\Database\Creator;
-use Labi\Database\Updater;
-use Labi\Database\Remover;
+use Labi\Adapters\Mysql\Searcher;
+use Labi\Adapters\Mysql\Creator;
+use Labi\Adapters\Mysql\Updater;
+use Labi\Adapters\Mysql\Remover;
 
 class Adapter implements \Labi\Adapters\AdapterInterface
 {

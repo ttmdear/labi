@@ -9,23 +9,29 @@
  */
 namespace Labi\Database;
 
+use Labi\Database\Utility\Field;
+use Labi\Database\Utility\Column;
 use Labi\Database\Utility\Condition;
-use Labi\Database\Utility\ConditionInterface;
-use Labi\Adapters\AdapterInterface;
-use Labi\Operators\UpdaterInterface;
-use Labi\Database\Utility\Uid;
 
-class Updater implements ConditionInterface, UpdaterInterface
+/**
+ * Klasa do obslugi procedury aktualizacji danych w bazie danych.
+ */
+abstract class Updater implements
+    \Labi\Database\Utility\ConditionInterface,
+    \Labi\Operators\UpdaterInterface
 {
+    abstract protected function quoteChar();
+
     private $table;
     private $adapter;
     private $values = array();
     private $condition = null;
+    private $columns = array();
 
     private $params = array();
     private $pparams = array();
 
-    function __construct(AdapterInterface $adapter)
+    function __construct(\Labi\Adapters\AdapterInterface $adapter)
     {
         $this->adapter = $adapter;
         $this->condition = new Condition($this);
@@ -61,6 +67,40 @@ class Updater implements ConditionInterface, UpdaterInterface
         }
     }
 
+    public function column($cname)
+    {
+        if (is_null($this->table)) {
+            throw new \Exception("Please define table, before refer to column.");
+        }
+
+        // rozbicie zapisuj kolumny na table i tabele
+        $cname = Column::convColumnId($cname, $this->table);
+
+        if (isset($this->columns[$cname->id])) {
+
+            // podana kolumna zostala juz zdefiniowana
+            $column = $this->columns[$cname->id];
+            $column->context($this);
+            $column->condition($this->condition);
+
+            return $column;
+        }
+
+        // tworze nowa kolumne, gdzie wartoscia jest pole
+        $column = new Column(new Field($cname->table, $cname->name, $this->quoteChar()));
+        $column
+            // ustawiam context na selecta
+            ->context($this)
+            // przekazuje obiekt warunku z ktorego bedzie korzystac kolumna
+            ->condition($this->condition)
+        ;
+
+        // zapisuje kolmne
+        $this->columns[$cname->id] = $column;
+
+        return $column;
+    }
+
     public function reset($proccess = false)
     {
         if ($proccess) {
@@ -87,6 +127,7 @@ class Updater implements ConditionInterface, UpdaterInterface
     {
         $table = $this->table();
         $values = $this->values();
+        $quoteChar = $this->quoteChar();
 
         if(is_null($table)){
             throw new \Exception("Define table to update.");
@@ -99,7 +140,7 @@ class Updater implements ConditionInterface, UpdaterInterface
         // usuwam rzeczy zwiazane z przetwarzaniem zapytania
         $this->reset(true);
 
-        $sql = "update `{$table}`\n";
+        $sql = "update {$quoteChar}{$table}{$quoteChar}\n";
 
         $columns = array_keys($this->values);
 
@@ -133,10 +174,10 @@ class Updater implements ConditionInterface, UpdaterInterface
             }
 
             if ($direct) {
-                $sql .= "    `$column` = {$value}";
+                $sql .= "    {$quoteChar}$column{$quoteChar} = {$value}";
             }else{
-                $uId = Uid::uId();
-                $sql .= "    `$column` = :{$uId}";
+                $uId = \Labi\Database\Utility\Uid::uId();
+                $sql .= "    {$quoteChar}$column{$quoteChar} = :{$uId}";
                 $this->param($uId, $value, true);
             }
 
@@ -154,7 +195,7 @@ class Updater implements ConditionInterface, UpdaterInterface
         return $sql;
     }
 
-    // + ConditionInterface
+    // + \Labi\Database\Utility\ConditionInterface
     public function brackets($function, $scope = null)
     {
         $this->condition->brackets($function, $this);
@@ -175,85 +216,85 @@ class Updater implements ConditionInterface, UpdaterInterface
 
     public function in($column, $value)
     {
-        $this->condition->in($column, $value);
+        $this->condition->in($this->column($column, false), $value);
         return $this;
     }
 
     public function notIn($column, $value)
     {
-        $this->condition->notIn($column, $value);
+        $this->condition->notIn($this->column($column, false), $value);
         return $this;
     }
 
     public function isNull($column)
     {
-        $this->condition->isNull($column);
+        $this->condition->isNull($this->column($column, false));
         return $this;
     }
 
     public function isNotNull($column)
     {
-        $this->condition->isNotNull($column);
+        $this->condition->isNotNull($this->column($column, false));
         return $this;
     }
 
     public function startWith($column, $value)
     {
-        $this->condition->startWith($column, $value);
+        $this->condition->startWith($this->column($column, false), $value);
         return $this;
     }
 
     public function endWith($column, $value)
     {
-        $this->condition->endWith($column, $value);
+        $this->condition->endWith($this->column($column, false), $value);
         return $this;
     }
 
     public function contains($column, $value)
     {
-        $this->condition->contains($column, $value);
+        $this->condition->contains($this->column($column, false), $value);
         return $this;
     }
 
     public function like($column, $value)
     {
-        $this->condition->like($column, $value);
+        $this->condition->like($this->column($column, false), $value);
         return $this;
     }
 
     public function eq($column, $value)
     {
-        $this->condition->eq($column, $value);
+        $this->condition->eq($this->column($column, false), $value);
         return $this;
     }
 
     public function neq($column, $value)
     {
-        $this->condition->neq($column, $value);
+        $this->condition->neq($this->column($column, false), $value);
         return $this;
     }
 
     public function lt($column, $value)
     {
-        $this->condition->lt($column, $value);
+        $this->condition->lt($this->column($column, false), $value);
         return $this;
     }
 
     public function lte($column, $value)
     {
-        $this->condition->lte($column, $value);
+        $this->condition->lte($this->column($column, false), $value);
         return $this;
     }
 
     public function gt($column, $value)
     {
-        $this->condition->gt($column, $value);
+        $this->condition->gt($this->column($column, false), $value);
         return $this;
     }
 
     public function gte($column, $value)
     {
-        $this->condition->gte($column, $value);
+        $this->condition->gte($this->column($column, false), $value);
         return $this;
     }
 
@@ -277,12 +318,12 @@ class Updater implements ConditionInterface, UpdaterInterface
 
     public function between($column, $begin, $end)
     {
-        $this->condition->between($column, $begin, $end);
+        $this->condition->between($this->column($column, false), $begin, $end);
         return $this;
     }
-    // - ConditionInterface
+    // - \Labi\Database\Utility\ConditionInterface
 
-    // + UpdaterInterface
+    // + \Labi\Operators\UpdaterInterface
     public function update($params = array())
     {
         $sql = $this->toSql();
@@ -292,5 +333,5 @@ class Updater implements ConditionInterface, UpdaterInterface
         $this->adapter->execute($sql, $params);
         return true;
     }
-    // - UpdaterInterface
+    // - \Labi\Operators\UpdaterInterface
 }

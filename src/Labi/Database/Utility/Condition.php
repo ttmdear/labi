@@ -10,16 +10,13 @@
 namespace Labi\Database\Utility;
 
 use Labi\Database\Searcher;
-use Labi\Database\Utility\Column;
-use Labi\Database\Utility\ConditionInterface;
-use Labi\Database\Utility\Uid;
 
-class Condition implements ConditionInterface
+class Condition implements
+    \Labi\Database\Utility\ConditionInterface
 {
     private $mstack = array();
     private $brackets;
     private $mbrackets;
-
     private $context;
 
     function __construct($context)
@@ -76,6 +73,7 @@ class Condition implements ConditionInterface
         }
 
         $this->context = $context;
+
         return $this;
     }
 
@@ -124,7 +122,7 @@ class Condition implements ConditionInterface
         $this->brackets = $brackets;
     }
 
-    // (wA AND wB)
+    // methods
     public function andOperator()
     {
         // aktualnie przetwarzany nawias ma AND operator
@@ -141,7 +139,6 @@ class Condition implements ConditionInterface
         return $this->context;
     }
 
-    // methods
     public function in($column, $value)
     {
         if (is_numeric($value) || is_string($value)) {
@@ -338,14 +335,6 @@ class Condition implements ConditionInterface
         $this->gte($column, $begin);
         $this->lte($column, $end);
 
-        // $this->addElement(array(
-        //     'type' => 'between',
-        //     'column' => $column,
-        //     'value' => null,
-        //     'begin' => $begin,
-        //     'end' => $end,
-        // ));
-
         return $this->context;
     }
 
@@ -406,10 +395,10 @@ class Condition implements ConditionInterface
 
                 if (isset($operators[$type])) {
                     $operator = $operators[$type];
-                    if ($value instanceof Column) {
+                    if ($value instanceof \Labi\Database\Utility\Column) {
                         $condition = "{$column} {$operator} {$value->value()}";
                     }else{
-                        $uId = Uid::uId();
+                        $uId = \Labi\Database\Utility\Uid::uId();
                         $condition = "{$column} {$operator} :$uId";
                         $this->context->param($uId, $value, true);
                     }
@@ -467,7 +456,7 @@ class Condition implements ConditionInterface
                             if ($direct) {
                                 $condition .= "$inValue";
                             }else{
-                                $uId = Uid::uId();
+                                $uId = \Labi\Database\Utility\Uid::uId();
                                 $condition .= ":{$uId}";
                                 $this->context->param($uId, $value[$i], true);
                             }

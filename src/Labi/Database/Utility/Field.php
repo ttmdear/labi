@@ -13,15 +13,19 @@ class Field
 {
     private $table;
     private $name;
+    private $quoteChar;
 
-    function __construct($table, $name)
+    function __construct($table, $name, $quoteChar = null)
     {
         $this->table = $table;
         $this->name = $name;
+        $this->quoteChar = is_null($quoteChar) ? "" : $quoteChar;
     }
 
     public function __toString()
     {
-        return "`{$this->table}`.`{$this->name}`";
+        $quoteChar = $this->quoteChar;
+
+        return "{$quoteChar}{$this->table}{$quoteChar}.{$quoteChar}{$this->name}{$quoteChar}";
     }
 }

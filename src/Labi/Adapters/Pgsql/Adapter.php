@@ -7,12 +7,13 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-namespace Labi\Adapters\Sqlite;
+namespace Labi\Adapters\Pgsql;
 
-use Labi\Adapters\Sqlite\Searcher;
-use Labi\Adapters\Sqlite\Creator;
-use Labi\Adapters\Sqlite\Updater;
-use Labi\Adapters\Sqlite\Remover;
+// use Database Utility
+use Labi\Adapters\Pgsql\Searcher;
+use Labi\Adapters\Pgsql\Creator;
+use Labi\Adapters\Pgsql\Updater;
+use Labi\Adapters\Pgsql\Remover;
 
 class Adapter implements \Labi\Adapters\AdapterInterface
 {
@@ -32,9 +33,20 @@ class Adapter implements \Labi\Adapters\AdapterInterface
             return;
         }
 
-        $path = $this->config['path'];
+        $host = $this->config['host'];
+        $dbname = $this->config['dbname'];
+        $username = $this->config['username'];
+        $password = $this->config['password'];
+        $charset = $this->config['charset'];
 
-        $this->pdo = new \PDO("sqlite:$path");
+        // connection
+        if (!empty($password)) {
+            $this->pdo = new \PDO("pgsql:host=$host;dbname=$dbname", $username, $password);
+        }else{
+            $this->pdo = new \PDO("pgsql:host=$host;dbname=$dbname", $username);
+        }
+
+        $this->pdo->exec("SET NAMES '$charset';");
 
         if (is_null($this->pdo)) {
             throw new \Exception("The connection to source {$source} cannot be established.");

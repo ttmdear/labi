@@ -15,8 +15,10 @@ use Labi\Database\Utility\Uid;
 
 use Labi\Operators\CreatorInterface;
 
-class Creator implements CreatorInterface
+abstract class Creator implements CreatorInterface
 {
+    abstract protected function quoteChar();
+
     private $adapter = null;
     private $table = null;
     private $columns = null;
@@ -115,6 +117,7 @@ class Creator implements CreatorInterface
     {
         $table = $this->table();
         $values = $this->values();
+        $quoteChar = $this->quoteChar();
 
         if(is_null($table)){
             throw new \Exception("Define table to insert.");
@@ -134,7 +137,7 @@ class Creator implements CreatorInterface
         $scolumns = "";
         for ($i=0; $i < $count; $i++) {
             $column = $this->columns[$i];
-            $scolumns .= "`{$column}`,";
+            $scolumns .= "{$quoteChar}{$column}{$quoteChar},";
         }
 
         // usuwam ostatni nadmiarowy przecinek
@@ -204,7 +207,7 @@ class Creator implements CreatorInterface
         }
 
         // budowanie insertu
-        $sql = "insert into `{$table}` ({$scolumns}) VALUES {$svalues}";
+        $sql = "insert into {$quoteChar}{$table}{$quoteChar} ({$scolumns}) VALUES {$svalues}";
 
         return $sql;
     }
