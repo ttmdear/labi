@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * This file is part of the Labi package.
  *
  * (c) Paweł Bobryk <bobryk.pawel@gmail.com>
@@ -9,25 +9,20 @@
  */
 namespace Labi\Database;
 
-use Labi\Database\Utility\Condition;
-use Labi\Adapters\AdapterInterface;
-use Labi\Database\Utility\Uid;
-
-use Labi\Operators\CreatorInterface;
-
-abstract class Creator implements CreatorInterface
+abstract class Creator implements
+    \Labi\Operators\CreatorInterface
 {
     abstract protected function quoteChar();
 
     private $adapter = null;
     private $table = null;
-    private $columns = null;
     private $values = array();
 
+    private $columns = null;
     private $params = array();
     private $pparams = array();
 
-    function __construct(AdapterInterface $adapter)
+    function __construct(\Labi\Adapters\AdapterInterface $adapter)
     {
         $this->adapter = $adapter;
     }
@@ -36,14 +31,19 @@ abstract class Creator implements CreatorInterface
     {
         if (!is_null($table)) {
             $this->table = $table;
+
             return $this;
         }
 
         return $this->table;
     }
 
-    public function columns($columns)
+    public function columns($columns = null)
     {
+        if (is_null($columns)) {
+            return $this->columns;
+        }
+
         $this->columns = $columns;
         return $this;
     }
@@ -55,7 +55,6 @@ abstract class Creator implements CreatorInterface
         }
 
         $this->values = $values;
-
         return $this;
     }
 
@@ -101,19 +100,16 @@ abstract class Creator implements CreatorInterface
         return $this;
     }
 
-    // + CreatorInterface
+    // + \Labi\Operators\CreatorInterface
     public function create($params = array())
     {
-        $sql = $this->toSql();
-
-        $params = array_merge($this->params(), $this->params(true), $params);
-        $this->adapter->execute($sql, $params);
+        $this->adapter->execute($this->toSql(), array_merge($this->params(), $this->params(true), $params));
 
         return true;
     }
-    // - CreatorInterface
+    // - \Labi\Operators\CreatorInterface
 
-    public function toSql($params = array())
+    public function toSql()
     {
         $table = $this->table();
         $values = $this->values();
@@ -137,11 +133,13 @@ abstract class Creator implements CreatorInterface
         $scolumns = "";
         for ($i=0; $i < $count; $i++) {
             $column = $this->columns[$i];
-            $scolumns .= "{$quoteChar}{$column}{$quoteChar},";
-        }
 
-        // usuwam ostatni nadmiarowy przecinek
-        $scolumns = trim($scolumns, ',');
+            $scolumns .= "{$quoteChar}{$column}{$quoteChar}";
+
+            if ($i != $count-1) {
+                $scolumns .= ",";
+            }
+        }
 
         // values
         $svalues = "";
@@ -159,7 +157,6 @@ abstract class Creator implements CreatorInterface
             $svalues .= "(";
 
             for ($j=0; $j < $ccount; $j++) {
-
                 // nazwa kolumny
                 $column = $this->columns[$j];
 
@@ -189,7 +186,7 @@ abstract class Creator implements CreatorInterface
                 if ($direct) {
                     $svalues .= "{$value}";
                 }else{
-                    $uId = Uid::uId();
+                    $uId = \Labi\Database\Utility\Uid::uId();
                     $svalues .= ":$uId";
                     $this->param($uId, $value, true);
                 }

@@ -26,10 +26,11 @@ interface AdapterInterface
      *
      * @param string $command
      * @param array $params
+     * @param array $options
      *
      * @return array
      */
-    public function fetch($command, $params = array());
+    public function fetch($command, $params = array(), $options = array());
 
     /**
      * Returns object of searcher.

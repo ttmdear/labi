@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * This file is part of the Labi package.
  *
  * (c) Paweł Bobryk <bobryk.pawel@gmail.com>
@@ -9,15 +9,10 @@
  */
 namespace Labi\Database;
 
-use Labi\Database\Utility\Join;
-use Labi\Database\Utility\Field;
-use Labi\Database\Utility\Column;
-use Labi\Database\Utility\Condition;
-use Labi\Database\Utility\ConditionInterface;
-use Labi\Adapters\AdapterInterface;
-use Labi\Operators\RemoverInterface;
 
-abstract class Remover implements ConditionInterface, RemoverInterface
+abstract class Remover implements
+    \Labi\Database\Utility\ConditionInterface,
+    \Labi\Operators\RemoverInterface
 {
     abstract protected function quoteChar();
 
@@ -29,11 +24,10 @@ abstract class Remover implements ConditionInterface, RemoverInterface
     private $params = array();
     private $pparams = array();
 
-    function __construct(AdapterInterface $adapter)
+    function __construct(\Labi\Adapters\AdapterInterface $adapter)
     {
         $this->adapter = $adapter;
-
-        $this->condition = new Condition($this);
+        $this->condition = new \Labi\Database\Utility\Condition($this);
     }
 
     public function column($cname)
@@ -43,10 +37,9 @@ abstract class Remover implements ConditionInterface, RemoverInterface
         }
 
         // rozbicie zapisuj kolumny na table i tabele
-        $cname = Column::convColumnId($cname, $this->table);
+        $cname = \Labi\Database\Utility\Column::convColumnId($cname, $this->table);
 
         if (isset($this->columns[$cname->id])) {
-
             // podana kolumna zostala juz zdefiniowana
             $column = $this->columns[$cname->id];
             $column->context($this);
@@ -56,10 +49,11 @@ abstract class Remover implements ConditionInterface, RemoverInterface
         }
 
         // tworze nowa kolumne, gdzie wartoscia jest pole
-        $column = new Column(new Field($cname->table, $cname->name, $this->quoteChar()));
+        $column = new \Labi\Database\Utility\Column(new \Labi\Database\Utility\Field($cname->table, $cname->name, $this->quoteChar()));
         $column
             // ustawiam context na selecta
             ->context($this)
+
             // przekazuje obiekt warunku z ktorego bedzie korzystac kolumna
             ->condition($this->condition)
         ;
@@ -74,6 +68,7 @@ abstract class Remover implements ConditionInterface, RemoverInterface
     {
         if (!is_null($table)) {
             $this->table = $table;
+
             return $this;
         }
 
@@ -87,6 +82,7 @@ abstract class Remover implements ConditionInterface, RemoverInterface
         }else{
             return $this->params;
         }
+
     }
 
     public function reset($proccess = false)
@@ -111,7 +107,7 @@ abstract class Remover implements ConditionInterface, RemoverInterface
         return $this;
     }
 
-    public function toSql($params = array())
+    public function toSql()
     {
         $table = $this->table();
         $quoteChar = $this->quoteChar();
@@ -130,139 +126,160 @@ abstract class Remover implements ConditionInterface, RemoverInterface
         return $sql;
     }
 
-    // + RemoverInterface
+    // + \Labi\Operators\RemoverInterface
     public function remove($params = array())
     {
-        $sql = $this->toSql();
-        $this->adapter->execute($sql, $this->params(true));
+        $this->adapter->execute($this->toSql(), array_merge($this->params(), $this->params(true), $params));
+
         return true;
     }
-    // - RemoverInterface
+    // - \Labi\Operators\RemoverInterface
 
     // + \Labi\Database\Utility\ConditionInterface
     public function brackets($function, $scope = null)
     {
         $this->condition->brackets($function, $this);
+
         return $this;
     }
 
     public function andOperator()
     {
         $this->condition->andOperator();
+
         return $this;
     }
 
     public function orOperator()
     {
         $this->condition->orOperator();
+
         return $this;
     }
 
     public function in($column, $value)
     {
         $this->condition->in($this->column($column, false), $value);
+
         return $this;
     }
 
     public function notIn($column, $value)
     {
         $this->condition->notIn($this->column($column, false), $value);
+
         return $this;
     }
 
     public function isNull($column)
     {
         $this->condition->isNull($this->column($column, false));
+
         return $this;
     }
 
     public function isNotNull($column)
     {
         $this->condition->isNotNull($this->column($column, false));
+
         return $this;
     }
 
     public function startWith($column, $value)
     {
         $this->condition->startWith($this->column($column, false), $value);
+
         return $this;
     }
 
     public function endWith($column, $value)
     {
         $this->condition->endWith($this->column($column, false), $value);
+
         return $this;
     }
 
     public function contains($column, $value)
     {
         $this->condition->contains($this->column($column, false), $value);
+
         return $this;
     }
 
     public function like($column, $value)
     {
         $this->condition->like($this->column($column, false), $value);
+
         return $this;
     }
 
     public function eq($column, $value)
     {
         $this->condition->eq($this->column($column, false), $value);
+
         return $this;
     }
 
     public function neq($column, $value)
     {
         $this->condition->neq($this->column($column, false), $value);
+
         return $this;
     }
 
     public function lt($column, $value)
     {
         $this->condition->lt($this->column($column, false), $value);
+
         return $this;
     }
 
     public function lte($column, $value)
     {
         $this->condition->lte($this->column($column, false), $value);
+
         return $this;
     }
 
     public function gt($column, $value)
     {
         $this->condition->gt($this->column($column, false), $value);
+
         return $this;
     }
 
     public function gte($column, $value)
     {
         $this->condition->gte($this->column($column, false), $value);
+
         return $this;
     }
 
     public function expr($expr)
     {
         $this->condition->expr($expr);
+
         return $this;
     }
 
     public function exists($value)
     {
         $this->condition->exists($value);
+
         return $this;
     }
 
     public function notExists($value)
     {
         $this->condition->notExists($value);
+
         return $this;
     }
 
     public function between($column, $begin, $end)
     {
         $this->condition->between($column, $begin, $end);
+
         return $this;
     }
     // - \Labi\Database\Utility\ConditionInterface

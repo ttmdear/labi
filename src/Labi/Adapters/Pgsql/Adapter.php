@@ -24,7 +24,19 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     function __construct($name, $config = array())
     {
         $this->name = $name;
-        $this->config = $config;
+
+        $dconfig = array(
+            'host' => null,
+            'dbname' => null,
+            'username' => null,
+            'password' => null,
+            'charset' => 'utf-8',
+            'options' => array(
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+            )
+        );
+
+        $this->config = array_merge($dconfig, $config);
     }
 
     private function init()
@@ -52,7 +64,9 @@ class Adapter implements \Labi\Adapters\AdapterInterface
             throw new \Exception("The connection to source {$source} cannot be established.");
         }
 
-        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        foreach ($this->config['options'] as $key => $value) {
+            $this->pdo->setAttribute($key, $value);
+        }
     }
 
     // + AdapterInterface
@@ -64,27 +78,19 @@ class Adapter implements \Labi\Adapters\AdapterInterface
             $sql = str_replace(":$name", $this->pdo->quote($value), $sql);
         }
 
-        $this->pdo->exec($sql);
-
         // nie wiem czemu ale zwykle prepare dla zloznych zapytan dla sqlite
         // wykonuje tylko pierwsze polecenie exec
+        $this->pdo->exec($sql);
 
         return true;
     }
 
-    public function fetch($sql, $params = array())
+    public function fetch($sql, $params = array(), $options = array())
     {
         $statement = $this->prepare($sql, $params);
 
         $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
-        // if(defined('debug')){
-        //     $statement = $this->prepare('select * from books where idBook = \'1\';', $params);
 
-        // $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
-        //     // todo : delete
-        //     die(print_r($result, true));
-        //     // endtodo
-        // }
         $statement->closeCursor();
 
         return $result;

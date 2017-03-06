@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * This file is part of the Labi package.
  *
  * (c) Paweł Bobryk <bobryk.pawel@gmail.com>
@@ -8,10 +8,6 @@
  * file that was distributed with this source code.
  */
 namespace Labi\Database;
-
-use Labi\Database\Utility\Field;
-use Labi\Database\Utility\Column;
-use Labi\Database\Utility\Condition;
 
 /**
  * Klasa do obslugi procedury aktualizacji danych w bazie danych.
@@ -34,7 +30,7 @@ abstract class Updater implements
     function __construct(\Labi\Adapters\AdapterInterface $adapter)
     {
         $this->adapter = $adapter;
-        $this->condition = new Condition($this);
+        $this->condition = new \Labi\Database\Utility\Condition($this);
     }
 
     public function table($table = null)
@@ -74,7 +70,7 @@ abstract class Updater implements
         }
 
         // rozbicie zapisuj kolumny na table i tabele
-        $cname = Column::convColumnId($cname, $this->table);
+        $cname = \Labi\Database\Utility\Column::convColumnId($cname, $this->table);
 
         if (isset($this->columns[$cname->id])) {
 
@@ -87,7 +83,7 @@ abstract class Updater implements
         }
 
         // tworze nowa kolumne, gdzie wartoscia jest pole
-        $column = new Column(new Field($cname->table, $cname->name, $this->quoteChar()));
+        $column = new \Labi\Database\Utility\Column(new \Labi\Database\Utility\Field($cname->table, $cname->name, $this->quoteChar()));
         $column
             // ustawiam context na selecta
             ->context($this)
@@ -123,7 +119,7 @@ abstract class Updater implements
         return $this;
     }
 
-    public function toSql($params = array())
+    public function toSql()
     {
         $table = $this->table();
         $values = $this->values();
@@ -326,11 +322,8 @@ abstract class Updater implements
     // + \Labi\Operators\UpdaterInterface
     public function update($params = array())
     {
-        $sql = $this->toSql();
+        $this->adapter->execute($this->toSql(), array_merge($this->params(), $this->params(true), $params));
 
-        $params = array_merge($this->params(), $this->params(true), $params);
-
-        $this->adapter->execute($sql, $params);
         return true;
     }
     // - \Labi\Operators\UpdaterInterface

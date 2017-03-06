@@ -9,11 +9,6 @@
  */
 namespace Labi\Adapters\Sqlite;
 
-use Labi\Adapters\Sqlite\Searcher;
-use Labi\Adapters\Sqlite\Creator;
-use Labi\Adapters\Sqlite\Updater;
-use Labi\Adapters\Sqlite\Remover;
-
 class Adapter implements \Labi\Adapters\AdapterInterface
 {
     private $pdo;
@@ -23,7 +18,15 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     function __construct($name, $config = array())
     {
         $this->name = $name;
-        $this->config = $config;
+
+        $dconfig = array(
+            'path' => null,
+            'options' => array(
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+            )
+        );
+
+        $this->config = array_merge($dconfig, $config);
     }
 
     private function init()
@@ -40,7 +43,9 @@ class Adapter implements \Labi\Adapters\AdapterInterface
             throw new \Exception("The connection to source {$source} cannot be established.");
         }
 
-        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        foreach ($this->config['options'] as $key => $value) {
+            $this->pdo->setAttribute($key, $value);
+        }
     }
 
     // + AdapterInterface
@@ -52,27 +57,19 @@ class Adapter implements \Labi\Adapters\AdapterInterface
             $sql = str_replace(":$name", $this->pdo->quote($value), $sql);
         }
 
-        $this->pdo->exec($sql);
-
         // nie wiem czemu ale zwykle prepare dla zloznych zapytan dla sqlite
         // wykonuje tylko pierwsze polecenie exec
+        $this->pdo->exec($sql);
 
         return true;
     }
 
-    public function fetch($sql, $params = array())
+    public function fetch($sql, $params = array(), $options = array())
     {
         $statement = $this->prepare($sql, $params);
 
         $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
-        // if(defined('debug')){
-        //     $statement = $this->prepare('select * from books where idBook = \'1\';', $params);
 
-        // $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
-        //     // todo : delete
-        //     die(print_r($result, true));
-        //     // endtodo
-        // }
         $statement->closeCursor();
 
         return $result;
@@ -81,7 +78,7 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     public function searcher($class = null)
     {
         if (is_null($class)) {
-            $class = Searcher::class;
+            $class = \Labi\Adapters\Sqlite\Searcher::class;
         }
 
         return new $class($this);
@@ -90,7 +87,7 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     public function creator($class = null)
     {
         if (is_null($class)) {
-            $class = Creator::class;
+            $class = \Labi\Adapters\Sqlite\Creator::class;
         }
 
         return new $class($this);
@@ -99,7 +96,7 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     public function remover($class = null)
     {
         if (is_null($class)) {
-            $class = Remover::class;
+            $class = \Labi\Adapters\Sqlite\Remover::class;
         }
 
         return new $class($this);
@@ -108,7 +105,7 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     public function updater($class = null)
     {
         if (is_null($class)) {
-            $class = Updater::class;
+            $class = \Labi\Adapters\Sqlite\Updater::class;
         }
 
         return new $class($this);

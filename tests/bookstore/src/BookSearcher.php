@@ -1,6 +1,6 @@
 <?php
 namespace Labi\Tests\Bookstore;
 
-class BookSearcher extends \Labi\Database\Searcher
+class BookSearcher extends \Labi\Adapters\Mysql\Searcher
 {
 }

@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * This file is part of the Labi package.
  *
  * (c) Paweł Bobryk <bobryk.pawel@gmail.com>
@@ -338,7 +338,7 @@ class Condition implements
         return $this->context;
     }
 
-    public function toSql($params = array())
+    public function toSql()
     {
         $sql = "";
 
@@ -419,7 +419,8 @@ class Condition implements
                     }elseif ($value instanceof Searcher){
                         $condition = "{$column} {$operator}({$value->toSql()})";
 
-                        // przenosze parametry
+                        // przenosze parametry z zapytania do contextu,
+                        // przeniesione parametry sa oznaczone jako process
                         foreach ($value->params(true) as $name => $val) {
                             $this->context->param($name, $val, true);
                         }

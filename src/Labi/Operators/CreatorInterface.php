@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * This file is part of the Labi package.
  *
  * (c) Paweł Bobryk <bobryk.pawel@gmail.com>

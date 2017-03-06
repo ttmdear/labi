@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * This file is part of the Labi package.
  *
  * (c) Paweł Bobryk <bobryk.pawel@gmail.com>
@@ -96,6 +96,7 @@ abstract class Searcher implements
         }else{
             return $this->params;
         }
+
     }
 
     public function reset($proccess = false)
@@ -262,6 +263,7 @@ abstract class Searcher implements
     public function defaultRule($defaultRule)
     {
         $this->defaultRule = $defaultRule;
+
         return $this;
     }
 
@@ -451,7 +453,7 @@ abstract class Searcher implements
     }
     // - \Labi\Database\Utility\ConditionInterface
 
-    public function toSql($params = array())
+    public function toSql()
     {
         if (is_null($this->table)) {
             // brak tabeli
@@ -602,30 +604,10 @@ abstract class Searcher implements
         return $this;
     }
 
-    public function first($params = array())
-    {
-        $this->limit(1);
-
-        $rows = $this->search($params);
-
-        if (empty($rows)) {
-            return null;
-        }
-
-        return $rows[0];
-    }
-
     // + \Labi\Operators\SearcherInterface
     public function search($params = array())
     {
-        // tworze sql
-        $sql = $this->toSql();
-
-        // lacze parametry
-        $params = array_merge($this->params(), $this->params(true), $params);
-
-        // zwracam wyniki
-        return $this->adapter->fetch($sql, $params);
+        return $this->adapter->fetch($this->toSql(), array_merge($this->params(), $this->params(true), $params));
     }
     // - \Labi\Operators\SearcherInterface
 }

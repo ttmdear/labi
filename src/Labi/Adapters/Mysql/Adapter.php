@@ -9,11 +9,6 @@
  */
 namespace Labi\Adapters\Mysql;
 
-use Labi\Adapters\Mysql\Searcher;
-use Labi\Adapters\Mysql\Creator;
-use Labi\Adapters\Mysql\Updater;
-use Labi\Adapters\Mysql\Remover;
-
 class Adapter implements \Labi\Adapters\AdapterInterface
 {
     private $pdo;
@@ -23,7 +18,19 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     function __construct($name, $config = array())
     {
         $this->name = $name;
-        $this->config = $config;
+
+        $dconfig = array(
+            'host' => null,
+            'dbname' => null,
+            'username' => null,
+            'password' => null,
+            'charset' => null,
+            'options' => array(
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+            )
+        );
+
+        $this->config = array_merge($dconfig, $config);
     }
 
     private function init()
@@ -49,17 +56,20 @@ class Adapter implements \Labi\Adapters\AdapterInterface
             throw new \Exception("The connection to source {$source} cannot be established.");
         }
 
-        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        foreach ($this->config['options'] as $key => $value) {
+            $this->pdo->setAttribute($key, $value);
+        }
     }
 
     // + AdapterInterface
     public function execute($sql, $params = array())
     {
-        $statement = $this->prepare($sql, $params);
+        $this->prepare($sql, $params);
+
         return true;
     }
 
-    public function fetch($sql, $params = array())
+    public function fetch($sql, $params = array(), $options = array())
     {
         $statement = $this->prepare($sql, $params);
 
@@ -72,7 +82,7 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     public function searcher($class = null)
     {
         if (is_null($class)) {
-            $class = Searcher::class;
+            $class = \Labi\Adapters\Mysql\Searcher::class;
         }
 
         return new $class($this);
@@ -81,7 +91,7 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     public function creator($class = null)
     {
         if (is_null($class)) {
-            $class = Creator::class;
+            $class = \Labi\Adapters\Mysql\Creator::class;
         }
 
         return new $class($this);
@@ -90,7 +100,7 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     public function remover($class = null)
     {
         if (is_null($class)) {
-            $class = Remover::class;
+            $class = \Labi\Adapters\Mysql\Remover::class;
         }
 
         return new $class($this);
@@ -99,7 +109,7 @@ class Adapter implements \Labi\Adapters\AdapterInterface
     public function updater($class = null)
     {
         if (is_null($class)) {
-            $class = Updater::class;
+            $class = \Labi\Adapters\Mysql\Updater::class;
         }
 
         return new $class($this);
